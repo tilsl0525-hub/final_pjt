@@ -3,6 +3,7 @@ import time
 import random
 from pathlib import Path
 from collections import Counter, deque
+import gdown
 
 import cv2
 import numpy as np
@@ -35,6 +36,9 @@ ZIP_CANDIDATES = [
     Path("/mnt/data/battery_defect_group_split(3).zip"),
     Path("/mnt/data/battery_defect_group_split(2).zip"),
 ]
+
+GDRIVE_ZIP_ID = "1MQ3IcDFFl9A_ad2BirBN_tx2MyibfWts"
+GDRIVE_ZIP_LOCAL = BASE_DIR / "battery_defect_group_split.zip"
 
 AUTO_THRESHOLD = 0.70
 REVIEW_LOW = 0.45
@@ -266,10 +270,19 @@ def prepare_dataset():
     zip_path = find_existing(ZIP_CANDIDATES)
 
     if zip_path is None:
-        st.error("battery_defect_group_split(3).zip 파일을 app.py와 같은 폴더에 두세요.")
-        st.stop()
+        st.info("📦 데이터셋을 Google Drive에서 다운로드 중입니다. 잠시만 기다려주세요...")
+        try:
+            gdown.download(
+                f"https://drive.google.com/uc?id={GDRIVE_ZIP_ID}",
+                str(GDRIVE_ZIP_LOCAL),
+                quiet=False,
+            )
+            zip_path = GDRIVE_ZIP_LOCAL
+        except Exception as e:
+            st.error(f"다운로드 실패: {e}")
+            st.stop()
 
-    extract_dir = BASE_DIR / zip_path.stem
+    extract_dir = BASE_DIR / "battery_defect_group_split"
 
     if not extract_dir.exists():
         with zipfile.ZipFile(zip_path, "r") as zf:
