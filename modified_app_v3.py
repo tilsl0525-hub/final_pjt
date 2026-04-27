@@ -3,7 +3,6 @@ import time
 import random
 from pathlib import Path
 from collections import Counter, deque
-import gdown
 
 import cv2
 import numpy as np
@@ -36,9 +35,6 @@ ZIP_CANDIDATES = [
     Path("/mnt/data/battery_defect_group_split(3).zip"),
     Path("/mnt/data/battery_defect_group_split(2).zip"),
 ]
-
-GDRIVE_ZIP_ID = "1MQ3IcDFFl9A_ad2BirBN_tx2MyibfWts"
-GDRIVE_ZIP_LOCAL = BASE_DIR / "battery_defect_group_split.zip"
 
 AUTO_THRESHOLD = 0.70
 REVIEW_LOW = 0.45
@@ -270,19 +266,10 @@ def prepare_dataset():
     zip_path = find_existing(ZIP_CANDIDATES)
 
     if zip_path is None:
-        st.info("📦 데이터셋을 Google Drive에서 다운로드 중입니다. 잠시만 기다려주세요...")
-        try:
-            gdown.download(
-                f"https://drive.google.com/uc?id={GDRIVE_ZIP_ID}",
-                str(GDRIVE_ZIP_LOCAL),
-                quiet=False,
-            )
-            zip_path = GDRIVE_ZIP_LOCAL
-        except Exception as e:
-            st.error(f"다운로드 실패: {e}")
-            st.stop()
+        st.error("battery_defect_group_split(3).zip 파일을 app.py와 같은 폴더에 두세요.")
+        st.stop()
 
-    extract_dir = BASE_DIR / "battery_defect_group_split"
+    extract_dir = BASE_DIR / zip_path.stem
 
     if not extract_dir.exists():
         with zipfile.ZipFile(zip_path, "r") as zf:
@@ -583,8 +570,10 @@ def render_worker_logs():
 
 run_next(1)
 
+tab1, tab2 = st.tabs(["🔍 실시간 비전 검사", "📊 대시보드 템플릿"])
 
-st.markdown("""
+with tab1:
+    st.markdown("""
 <div class="main-header">
     <h1>배터리 비전 검사 모니터링</h1>
 </div>
@@ -935,6 +924,137 @@ with side_col:
         <div class='info-line'><b>모델 파일</b> : {model_name}</div>
         <div class='info-line'><b>클래스</b> : good / not_good</div>
         """, unsafe_allow_html=True)
+
+
+
+with tab2:
+    st.markdown("""
+<style>
+    :root { 
+        --hyundai-blue: #012d74; 
+        --hyundai-light-blue: #0056b3; 
+        --danger-red: #d9534f; 
+        --safe-green: #28a745; 
+        --bg-color: #eef2f5; 
+        --card-bg: #ffffff; 
+    }
+    .main-header2 { 
+        background: linear-gradient(90deg, var(--hyundai-blue) 0%, var(--hyundai-light-blue) 100%); 
+        padding: 20px 30px; border-radius: 10px; color: white; margin-bottom: 25px; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; align-items: center; 
+    }
+    .main-header2 h1 { color: white !important; margin: 0; font-size: 32px; }
+    .main-header2 span { color: #e0e0e0; margin-left: 20px; font-size: 16px; margin-top: 10px; }
+    .kpi-container2 { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
+    .kpi-box2 { 
+        flex: 1; background-color: var(--card-bg); padding: 25px 20px; border-radius: 10px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; 
+        border-top: 5px solid var(--hyundai-blue); border: 1px solid #eaeaea; 
+    }
+    .kpi-box2.alert2 { border-top: 5px solid var(--danger-red); }
+    .kpi-title2 { font-size: 15px; color: #555; margin-bottom: 10px; font-weight: 600; }
+    .kpi-value2 { font-size: 26px; font-weight: 800; color: var(--hyundai-blue); }
+    .kpi-value2.alert-text2 { color: var(--danger-red); }
+    .section-card2 { 
+        background-color: var(--card-bg); padding: 20px; border-radius: 10px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 25px; border: 1px solid #eaeaea; 
+    }
+    .section-title2 { 
+        font-size: 18px; color: var(--hyundai-blue); font-weight: bold; margin-bottom: 15px; 
+        padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; display: flex; align-items: center; gap: 10px; 
+    }
+    .log-box2 { 
+        background-color: #1e1e1e !important; color: #00ff00 !important; 
+        font-family: 'Courier New', monospace; padding: 15px; border-radius: 6px; 
+        overflow-y: auto; border-left: 4px solid var(--hyundai-blue); font-size: 14px; line-height: 1.6; 
+    }
+    .log-error2 { color: #ff4b4b; font-weight: bold; }
+    .battery-grid2 { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+    .pack-card2 { 
+        width: 140px; padding: 20px 5px; border-radius: 8px; text-align: center; 
+        border: 2px solid #ddd; background: #fafafa; 
+    }
+    .pack-ok2 { border-color: #d1d5db; }
+    .pack-ng2 { border-color: var(--danger-red); background: #fff5f5; animation: borderPulse 1.5s infinite; }
+    .pack-chassis2 { background-color: #2c3e50; border-radius: 6px; padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 15px auto; width: 90%; }
+    .mod-cell2 { height: 20px; border-radius: 2px; background-color: var(--safe-green); }
+    .mod-cell2.ng2 { background-color: var(--danger-red); animation: blink 1s infinite; }
+    .pack-id2 { font-size: 15px; font-weight: bold; color: #333; }
+    .pack-status2 { font-size: 14px; font-weight: bold; margin-top: 10px; }
+    .pack-ok2 .pack-status2 { color: var(--safe-green); }
+    .pack-ng2 .pack-status2 { color: var(--danger-red); }
+</style>
+""", unsafe_allow_html=True)
+
+    st.markdown("""
+<div class="main-header2">
+    <h1>서비스 타이틀</h1>
+    <span>서브 타이틀 및 설명 텍스트 영역</span>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("""
+<div class="kpi-container2">
+    <div class="kpi-box2">
+        <div class="kpi-title2">일반 KPI 지표 1</div>
+        <div class="kpi-value2">값 1 <span style="font-size:16px; color:#888;">/ 단위</span></div>
+    </div>
+    <div class="kpi-box2 alert2">
+        <div class="kpi-title2" style="color:var(--hyundai-blue);">경고 레이아웃 KPI 2</div>
+        <div class="kpi-value2 alert-text2" style="font-size:22px;">경고 값</div>
+    </div>
+    <div class="kpi-box2">
+        <div class="kpi-title2">일반 KPI 지표 3</div>
+        <div class="kpi-value2" style="font-size:20px;">[텍스트] 텍스트 값</div>
+    </div>
+    <div class="kpi-box2 alert2">
+        <div class="kpi-title2">시스템 상태 표시</div>
+        <div class="kpi-value2 alert-text2">상태 문구</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    col_img2, col_log2 = st.columns([6, 4])
+
+    with col_img2:
+        st.markdown("""
+<div class="section-card2">
+    <div class="section-title2">
+        <span>메인 뷰어 영역 타이틀</span>
+        <span style="font-size:14px; font-weight:normal; color:#888; margin-left:auto;">우측 설명 텍스트</span>
+    </div>
+    <div class="battery-grid2">
+        <div class="pack-card2 pack-ok2">
+            <div class="pack-id2">정상 팩</div>
+            <div class="pack-chassis2"><div class="mod-cell2"></div><div class="mod-cell2"></div><div class="mod-cell2"></div><div class="mod-cell2"></div></div>
+            <div class="pack-status2">양호</div>
+        </div>
+        <div class="pack-card2 pack-ng2">
+            <div class="pack-id2">불량 팩</div>
+            <div class="pack-chassis2"><div class="mod-cell2 ng2"></div><div class="mod-cell2"></div><div class="mod-cell2"></div><div class="mod-cell2"></div></div>
+            <div class="pack-status2">경고</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    with col_log2:
+        st.markdown("""
+<div class="section-card2" style="margin-bottom: 15px;">
+    <div class="section-title2"><span>로그 터미널 영역 1</span></div>
+    <div class="log-box2" style="border-left: 4px solid #ff9800; height: 220px;">
+        <span style='color:#ff4b4b;'>[경고 태그]</span> 경고 메시지 예시입니다.<br>
+        <span style='color:#ffc107;'>[주의 태그]</span> 주의 메시지 예시입니다.
+    </div>
+</div>
+<div class="section-card2">
+    <div class="section-title2"><span>로그 터미널 영역 2</span></div>
+    <div class="log-box2" style="height: 180px;">
+        &gt; [SYSTEM] 시스템 정상 구동 메시지...<br>
+        <span class="log-error2">&gt; [FATAL] 심각한 에러 발생 스타일 예시</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 time.sleep(AUTO_INTERVAL_SEC)
