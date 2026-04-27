@@ -132,10 +132,12 @@ if TEST_DATA_DIR is None:
 @st.cache_resource
 def load_ai_models():
     import tf_keras
-    m_chg = tf_keras.models.load_model(os.path.join(BASE_DIR, 'model_chg.h5'), compile=False)
+    import h5py
+    from tf_keras.saving import legacy_h5_format
+    m_chg = legacy_h5_format.load_model_from_hdf5(h5py.File(os.path.join(BASE_DIR, 'model_chg.h5'), 'r'), compile=False)
     s_chg = joblib.load(os.path.join(BASE_DIR, 'scaler_chg.pkl'))
     st_chg = joblib.load(os.path.join(BASE_DIR, 'stats_chg.pkl'))
-    m_dchg = tf_keras.models.load_model(os.path.join(BASE_DIR, 'model_dchg.h5'), compile=False)
+    m_dchg = legacy_h5_format.load_model_from_hdf5(h5py.File(os.path.join(BASE_DIR, 'model_dchg.h5'), 'r'), compile=False)
     s_dchg = joblib.load(os.path.join(BASE_DIR, 'scaler_dchg.pkl'))
     st_dchg = joblib.load(os.path.join(BASE_DIR, 'stats_dchg.pkl'))
     return m_chg, s_chg, st_chg, m_dchg, s_dchg, st_dchg
