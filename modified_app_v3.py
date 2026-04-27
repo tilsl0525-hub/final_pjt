@@ -10,7 +10,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from ultralytics import YOLO
 
-from tensorflow.keras.models import load_model
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -132,8 +131,13 @@ if TEST_DATA_DIR is None:
 # ==========================================
 @st.cache_resource
 def load_ai_models():
-    m_chg = load_model(os.path.join(BASE_DIR, 'model_chg.h5'), compile=False); s_chg = joblib.load(os.path.join(BASE_DIR, 'scaler_chg.pkl')); st_chg = joblib.load(os.path.join(BASE_DIR, 'stats_chg.pkl'))
-    m_dchg = load_model(os.path.join(BASE_DIR, 'model_dchg.h5'), compile=False); s_dchg = joblib.load(os.path.join(BASE_DIR, 'scaler_dchg.pkl')); st_dchg = joblib.load(os.path.join(BASE_DIR, 'stats_dchg.pkl'))
+    import tf_keras
+    m_chg = tf_keras.models.load_model(os.path.join(BASE_DIR, 'model_chg.h5'), compile=False)
+    s_chg = joblib.load(os.path.join(BASE_DIR, 'scaler_chg.pkl'))
+    st_chg = joblib.load(os.path.join(BASE_DIR, 'stats_chg.pkl'))
+    m_dchg = tf_keras.models.load_model(os.path.join(BASE_DIR, 'model_dchg.h5'), compile=False)
+    s_dchg = joblib.load(os.path.join(BASE_DIR, 'scaler_dchg.pkl'))
+    st_dchg = joblib.load(os.path.join(BASE_DIR, 'stats_dchg.pkl'))
     return m_chg, s_chg, st_chg, m_dchg, s_dchg, st_dchg
 
 model_chg, scaler_chg, stats_chg, model_dchg, scaler_dchg, stats_dchg = load_ai_models()
