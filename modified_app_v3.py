@@ -93,8 +93,39 @@ MODULE_MAP = {f"Module_{i:02d}": {'cv': [f"M{i:02d}CV{j:02d}" for j in range(1, 
 chg_features = ['V_std', 'V_delta', 'V_max_gap', 'up_cell_ratio', 'V_delta_rolling_5', 'V_max_slope', 'T_std', 'T_delta', 'VT_efficiency', 'cv_top1_top2_gap', 'cv_range_rollmean_20']
 dchg_features = ['V_min', 'V_delta', 'V_min_gap', 'down_cell_ratio', 'V_delta_rolling_5', 'T_std', 'T_delta', 'VT_efficiency', 'cv_range_rollmean_20']
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
-TEST_DATA_DIR = os.path.join(BASE_DIR, "Dataset_전자부품(배터리팩) 품질보증 AI 데이터셋", "data", "raw_data", "test")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ── 구글 드라이브에서 데이터셋 자동 다운로드 ──
+GDRIVE_DATASET_ID = "1n7XeYH1O31Jsk8T3WPZTGK9x7roIrmPQ"
+GDRIVE_DATASET_ZIP = os.path.join(BASE_DIR, "dataset.zip")
+DATASET_EXTRACT_DIR = os.path.join(BASE_DIR, "Dataset_전자부품")
+
+@st.cache_resource
+def prepare_battery_dataset():
+    if not os.path.exists(DATASET_EXTRACT_DIR):
+        if not os.path.exists(GDRIVE_DATASET_ZIP):
+            st.info("📦 배터리 데이터셋을 Google Drive에서 다운로드 중... 잠시만 기다려주세요.")
+            gdown.download(
+                f"https://drive.google.com/uc?id={GDRIVE_DATASET_ID}",
+                GDRIVE_DATASET_ZIP,
+                quiet=False,
+            )
+        with zipfile.ZipFile(GDRIVE_DATASET_ZIP, "r") as zf:
+            zf.extractall(DATASET_EXTRACT_DIR)
+    return DATASET_EXTRACT_DIR
+
+dataset_root = prepare_battery_dataset()
+
+# 압축 해제 후 실제 test 폴더 경로 탐색
+TEST_DATA_DIR = None
+for root, dirs, files in os.walk(dataset_root):
+    if any(f.endswith('.csv') for f in files):
+        TEST_DATA_DIR = root
+        break
+
+if TEST_DATA_DIR is None:
+    st.error("데이터셋에서 CSV 파일을 찾을 수 없습니다.")
+    st.stop()
 
 # ==========================================
 # 3. AI 모델 로드
