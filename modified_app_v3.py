@@ -10,16 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from ultralytics import YOLO
 
-import subprocess, sys
-def _install(pkg):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "-q"])
-
-try:
-    from tensorflow.keras.models import load_model
-except ImportError:
-    _install("tensorflow-cpu==2.13.0")
-    from tensorflow.keras.models import load_model
-
+from tensorflow.keras.models import load_model
 import streamlit as st
 import pandas as pd
 import numpy as np
