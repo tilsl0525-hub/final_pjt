@@ -10,13 +10,22 @@ import plotly.express as px
 import plotly.graph_objects as go
 from ultralytics import YOLO
 
+import subprocess, sys
+def _install(pkg):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "-q"])
+
+try:
+    from tensorflow.keras.models import load_model
+except ImportError:
+    _install("tensorflow-cpu==2.13.0")
+    from tensorflow.keras.models import load_model
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
 import joblib
 import urllib.parse  # 한글 주소 인식을 위한 라이브러리
-from tensorflow.keras.models import load_model
 
 # ==========================================
 # 1. 웹 페이지 및 프리미엄 테마 설정
