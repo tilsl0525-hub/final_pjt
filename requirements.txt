@@ -5,6 +5,5 @@ pandas
 plotly
 ultralytics
 gdown
-tensorflow-cpu
 joblib
 scikit-learn
