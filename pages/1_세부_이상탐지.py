@@ -1,9 +1,18 @@
+import subprocess, sys
+def _install(pkg):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "-q"])
+
+try:
+    from tensorflow.keras.models import load_model
+except ImportError:
+    _install("tensorflow-cpu==2.13.0")
+    from tensorflow.keras.models import load_model
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
 import joblib
-from tensorflow.keras.models import load_model
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -72,7 +81,16 @@ chg_features = ['V_std', 'V_delta', 'V_max_gap', 'up_cell_ratio', 'V_delta_rolli
 dchg_features = ['V_min', 'V_delta', 'V_min_gap', 'down_cell_ratio', 'V_delta_rolling_5', 'T_std', 'T_delta', 'VT_efficiency', 'cv_range_rollmean_20']
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
-TEST_DATA_DIR = os.path.join(BASE_DIR, "Dataset_전자부품(배터리팩) 품질보증 AI 데이터셋", "data", "raw_data", "test")
+# 데이터셋 경로 - merged_app.py에서 다운로드된 경로 탐색
+_dataset_root = os.path.join(BASE_DIR, "Dataset_전자부품")
+TEST_DATA_DIR = None
+if os.path.exists(_dataset_root):
+    for _root, _dirs, _files in os.walk(_dataset_root):
+        if any(f.endswith('.csv') for f in _files):
+            TEST_DATA_DIR = _root
+            break
+if TEST_DATA_DIR is None:
+    TEST_DATA_DIR = os.path.join(BASE_DIR, "Dataset_전자부품(배터리팩) 품질보증 AI 데이터셋", "data", "raw_data", "test")
 
 @st.cache_resource
 def load_ai_models():
