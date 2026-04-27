@@ -5,3 +5,6 @@ pandas
 plotly
 ultralytics
 gdown
+tensorflow
+joblib
+scikit-learn
