@@ -568,494 +568,512 @@ def render_worker_logs():
     st.markdown(f"<div class='worker-log'>{''.join(rows)}</div>", unsafe_allow_html=True)
 
 
-run_next(1)
-
 tab1, tab2 = st.tabs(["🔍 실시간 비전 검사", "📊 대시보드 템플릿"])
 
 with tab1:
+    run_next(1)
+
+
     st.markdown("""
-<div class="main-header">
-    <h1>배터리 비전 검사 모니터링</h1>
-</div>
-""", unsafe_allow_html=True)
-
-
-completed = st.session_state.completed
-total_input = st.session_state.total_input
-
-normal_rate = pct(st.session_state.normal, completed)
-defect_rate = pct(st.session_state.defect, completed)
-review_rate = pct(st.session_state.review, completed)
-progress_rate = pct(completed, total_input)
-
-records_df = pd.DataFrame(st.session_state.records)
-avg_ms = records_df["infer_ms"].mean() if not records_df.empty else 0
-fps = 1000 / avg_ms if avg_ms else 0
-uph = fps * 3600
-
-fps_status, fps_status_class, fps_message = classify_fps_status(fps)
-
-st.markdown(f"""
-<div class="kpi-container">
-    <div class="kpi-box">
-        <div class="kpi-title">전체 셀 수</div>
-        <div class="kpi-value">{total_input}</div>
+    <div class="main-header">
+        <h1>배터리 비전 검사 모니터링</h1>
     </div>
-    <div class="kpi-box">
-        <div class="kpi-title">검사 완료</div>
-        <div class="kpi-value">{completed}</div>
-        <div class="kpi-sub">{progress_rate:.1f}% 진행</div>
+    """, unsafe_allow_html=True)
+
+
+    completed = st.session_state.completed
+    total_input = st.session_state.total_input
+
+    normal_rate = pct(st.session_state.normal, completed)
+    defect_rate = pct(st.session_state.defect, completed)
+    review_rate = pct(st.session_state.review, completed)
+    progress_rate = pct(completed, total_input)
+
+    records_df = pd.DataFrame(st.session_state.records)
+    avg_ms = records_df["infer_ms"].mean() if not records_df.empty else 0
+    fps = 1000 / avg_ms if avg_ms else 0
+    uph = fps * 3600
+
+    fps_status, fps_status_class, fps_message = classify_fps_status(fps)
+
+    st.markdown(f"""
+    <div class="kpi-container">
+        <div class="kpi-box">
+            <div class="kpi-title">전체 셀 수</div>
+            <div class="kpi-value">{total_input}</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-title">검사 완료</div>
+            <div class="kpi-value">{completed}</div>
+            <div class="kpi-sub">{progress_rate:.1f}% 진행</div>
+        </div>
+        <div class="kpi-box safe">
+            <div class="kpi-title">정상 판정</div>
+            <div class="kpi-value safe-text">{st.session_state.normal}</div>
+            <div class="kpi-sub">{normal_rate:.1f}%</div>
+        </div>
+        <div class="kpi-box defect">
+            <div class="kpi-title">불량 판정</div>
+            <div class="kpi-value defect-text">{st.session_state.defect}</div>
+            <div class="kpi-sub">{defect_rate:.1f}%</div>
+        </div>
+        <div class="kpi-box review">
+            <div class="kpi-title">수동 검수</div>
+            <div class="kpi-value review-text">{st.session_state.review}</div>
+            <div class="kpi-sub">{review_rate:.1f}%</div>
+        </div>
+        <div class="kpi-box {'defect' if defect_rate > TARGET_DEFECT_RATE else 'safe'}">
+            <div class="kpi-title">불량률 기준</div>
+            <div class="kpi-value {'defect-text' if defect_rate > TARGET_DEFECT_RATE else 'safe-text'}">{defect_rate:.1f}%</div>
+            <div class="kpi-sub">목표 {TARGET_DEFECT_RATE:.1f}% 이하</div>
+        </div>
+        <div class="kpi-box {'defect' if fps_status == 'DANGER' else 'warning' if fps_status == 'WARN' else 'safe'}">
+            <div class="kpi-title">처리 FPS</div>
+            <div class="kpi-value {'defect-text' if fps_status == 'DANGER' else 'warning-text' if fps_status == 'WARN' else 'safe-text'}">{fps:.2f}</div>
+            <div class="kpi-sub">목표 {TARGET_FPS:.1f} FPS</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-title">예상 처리량</div>
+            <div class="kpi-value">{uph:.0f}</div>
+            <div class="kpi-sub">UPH</div>
+        </div>
     </div>
-    <div class="kpi-box safe">
-        <div class="kpi-title">정상 판정</div>
-        <div class="kpi-value safe-text">{st.session_state.normal}</div>
-        <div class="kpi-sub">{normal_rate:.1f}%</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="progress-wrap">
+        <div class="progress-bar" style="width:{min(progress_rate, 100):.2f}%"></div>
     </div>
-    <div class="kpi-box defect">
-        <div class="kpi-title">불량 판정</div>
-        <div class="kpi-value defect-text">{st.session_state.defect}</div>
-        <div class="kpi-sub">{defect_rate:.1f}%</div>
-    </div>
-    <div class="kpi-box review">
-        <div class="kpi-title">수동 검수</div>
-        <div class="kpi-value review-text">{st.session_state.review}</div>
-        <div class="kpi-sub">{review_rate:.1f}%</div>
-    </div>
-    <div class="kpi-box {'defect' if defect_rate > TARGET_DEFECT_RATE else 'safe'}">
-        <div class="kpi-title">불량률 기준</div>
-        <div class="kpi-value {'defect-text' if defect_rate > TARGET_DEFECT_RATE else 'safe-text'}">{defect_rate:.1f}%</div>
-        <div class="kpi-sub">목표 {TARGET_DEFECT_RATE:.1f}% 이하</div>
-    </div>
-    <div class="kpi-box {'defect' if fps_status == 'DANGER' else 'warning' if fps_status == 'WARN' else 'safe'}">
-        <div class="kpi-title">처리 FPS</div>
-        <div class="kpi-value {'defect-text' if fps_status == 'DANGER' else 'warning-text' if fps_status == 'WARN' else 'safe-text'}">{fps:.2f}</div>
-        <div class="kpi-sub">목표 {TARGET_FPS:.1f} FPS</div>
-    </div>
-    <div class="kpi-box">
-        <div class="kpi-title">예상 처리량</div>
-        <div class="kpi-value">{uph:.0f}</div>
-        <div class="kpi-sub">UPH</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown(f"""
-<div class="progress-wrap">
-    <div class="progress-bar" style="width:{min(progress_rate, 100):.2f}%"></div>
-</div>
-<div class="kpi-sub">검사 진행률: {completed} / {total_input} cells · {progress_rate:.1f}%</div>
-""", unsafe_allow_html=True)
+    <div class="kpi-sub">검사 진행률: {completed} / {total_input} cells · {progress_rate:.1f}%</div>
+    """, unsafe_allow_html=True)
 
 
-main_col, side_col = st.columns([5.8, 4.2], gap="small")
-last = st.session_state.last_result or {}
+    main_col, side_col = st.columns([5.8, 4.2], gap="small")
+    last = st.session_state.last_result or {}
 
-with main_col:
-    with st.container(border=True):
-        st.markdown("<div class='section-title'>실시간 분류 화면</div>", unsafe_allow_html=True)
-
-        img_col, info_col = st.columns([3.2, 6.8], gap="small")
-
-        with img_col:
-            c1, c2, c3 = st.columns([1, 2, 1])
-            with c2:
-                st.image(st.session_state.last_image)
-
-        with info_col:
-            result = last.get("result", "-")
-
-            badge_class = {
-                "NORMAL": "badge-normal",
-                "DEFECT": "badge-defect",
-                "REVIEW": "badge-review",
-            }.get(result, "badge-normal")
-
-            st.markdown(f"<div class='result-badge {badge_class}'>{result}</div>", unsafe_allow_html=True)
-
-            st.markdown(f"""
-            <div class='info-line'><b>셀 ID</b> : {last.get('cell_id', '-')}</div>
-            <div class='info-line'><b>검사 시간</b> : {last.get('time', '-')}</div>
-            <div class='info-line'><b>신뢰도</b> : {last.get('confidence', 0):.2f}</div>
-            <div class='info-line'><b>추론 시간</b> : {last.get('infer_ms', 0):.1f} ms</div>
-            <div class='info-line'><b>판정 기준</b> : 검수 {REVIEW_LOW:.2f} ~ 자동판정 {AUTO_THRESHOLD:.2f}</div>
-            """, unsafe_allow_html=True)
-
-    c1, c2 = st.columns(2, gap="small")
-
-    with c1:
+    with main_col:
         with st.container(border=True):
-            st.markdown("<div class='section-title'>정상 / 불량 / 검수 비율</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-title'>실시간 분류 화면</div>", unsafe_allow_html=True)
 
-            donut_df = pd.DataFrame({
-                "type": ["Normal", "Defect", "Review"],
-                "count": [
-                    st.session_state.normal,
-                    st.session_state.defect,
-                    st.session_state.review,
-                ],
-            })
+            img_col, info_col = st.columns([3.2, 6.8], gap="small")
 
-            fig = px.pie(
-                donut_df,
-                values="count",
-                names="type",
-                hole=0.55,
-                color="type",
-                color_discrete_map={
-                    "Normal": "#2e7d32",
-                    "Defect": "#d32f2f",
-                    "Review": "#f57c00",
-                },
-            )
+            with img_col:
+                c1, c2, c3 = st.columns([1, 2, 1])
+                with c2:
+                    st.image(st.session_state.last_image)
 
-            fig.update_layout(height=CHART_HEIGHT, margin=dict(l=0, r=0, t=0, b=0))
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            with info_col:
+                result = last.get("result", "-")
 
-    with c2:
-        with st.container(border=True):
-            st.markdown("<div class='section-title'>클래스별 예측 현황</div>", unsafe_allow_html=True)
+                badge_class = {
+                    "NORMAL": "badge-normal",
+                    "DEFECT": "badge-defect",
+                    "REVIEW": "badge-review",
+                }.get(result, "badge-normal")
 
-            class_df = pd.DataFrame([
-                {"class": "good", "count": st.session_state.class_counter.get("good", 0)},
-                {"class": "not_good", "count": st.session_state.class_counter.get("not_good", 0)},
-                {"class": "unknown", "count": st.session_state.class_counter.get("unknown", 0)},
-            ])
+                st.markdown(f"<div class='result-badge {badge_class}'>{result}</div>", unsafe_allow_html=True)
 
-            fig = px.bar(
-                class_df,
-                x="count",
-                y="class",
-                orientation="h",
-                text="count",
-                color="class",
-                color_discrete_map={
-                    "good": "#2e7d32",
-                    "not_good": "#d32f2f",
-                    "unknown": "#f57c00",
-                },
-            )
+                st.markdown(f"""
+                <div class='info-line'><b>셀 ID</b> : {last.get('cell_id', '-')}</div>
+                <div class='info-line'><b>검사 시간</b> : {last.get('time', '-')}</div>
+                <div class='info-line'><b>신뢰도</b> : {last.get('confidence', 0):.2f}</div>
+                <div class='info-line'><b>추론 시간</b> : {last.get('infer_ms', 0):.1f} ms</div>
+                <div class='info-line'><b>판정 기준</b> : 검수 {REVIEW_LOW:.2f} ~ 자동판정 {AUTO_THRESHOLD:.2f}</div>
+                """, unsafe_allow_html=True)
 
-            fig.update_layout(
-                height=210,
-                margin=dict(l=0, r=0, t=0, b=0),
-                yaxis=dict(autorange="reversed"),
-                xaxis_title=None,
-                yaxis_title=None,
-                showlegend=False,
-            )
+        c1, c2 = st.columns(2, gap="small")
 
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        with c1:
+            with st.container(border=True):
+                st.markdown("<div class='section-title'>정상 / 불량 / 검수 비율</div>", unsafe_allow_html=True)
 
-    c3, c4 = st.columns(2, gap="small")
+                donut_df = pd.DataFrame({
+                    "type": ["Normal", "Defect", "Review"],
+                    "count": [
+                        st.session_state.normal,
+                        st.session_state.defect,
+                        st.session_state.review,
+                    ],
+                })
 
-    with c3:
-        with st.container(border=True):
-            st.markdown("<div class='section-title'>불량 / 검수 발생 추세</div>", unsafe_allow_html=True)
-
-            if records_df.empty:
-                st.info("추세 데이터 없음")
-            else:
-                trend_df = records_df.copy()
-                trend_df["seq"] = range(1, len(trend_df) + 1)
-                trend_df["abnormal"] = trend_df["result"].isin(["DEFECT", "REVIEW"]).astype(int)
-                trend_df["rolling_abnormal_rate"] = trend_df["abnormal"].rolling(20, min_periods=1).mean() * 100
-
-                fig = px.line(trend_df, x="seq", y="rolling_abnormal_rate")
-                fig.add_hline(y=TARGET_DEFECT_RATE, line_dash="dash", annotation_text="Target")
-                fig.update_layout(
-                    height=210,
-                    margin=dict(l=0, r=0, t=0, b=0),
-                    xaxis_title="검사 순번",
-                    yaxis_title="최근 이상률(%)",
-                )
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
-    with c4:
-        with st.container(border=True):
-            st.markdown("<div class='section-title'>Confidence 분포</div>", unsafe_allow_html=True)
-
-            if records_df.empty:
-                st.info("분포 데이터 없음")
-            else:
-                fig = px.histogram(
-                    records_df,
-                    x="confidence",
-                    nbins=12,
-                    color="result",
+                fig = px.pie(
+                    donut_df,
+                    values="count",
+                    names="type",
+                    hole=0.55,
+                    color="type",
                     color_discrete_map={
-                        "NORMAL": "#2e7d32",
-                        "DEFECT": "#d32f2f",
-                        "REVIEW": "#f57c00",
+                        "Normal": "#2e7d32",
+                        "Defect": "#d32f2f",
+                        "Review": "#f57c00",
                     },
                 )
 
-                fig.add_vline(x=REVIEW_LOW, line_dash="dash")
-                fig.add_vline(x=AUTO_THRESHOLD, line_dash="dash")
+                fig.update_layout(height=CHART_HEIGHT, margin=dict(l=0, r=0, t=0, b=0))
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        with c2:
+            with st.container(border=True):
+                st.markdown("<div class='section-title'>클래스별 예측 현황</div>", unsafe_allow_html=True)
+
+                class_df = pd.DataFrame([
+                    {"class": "good", "count": st.session_state.class_counter.get("good", 0)},
+                    {"class": "not_good", "count": st.session_state.class_counter.get("not_good", 0)},
+                    {"class": "unknown", "count": st.session_state.class_counter.get("unknown", 0)},
+                ])
+
+                fig = px.bar(
+                    class_df,
+                    x="count",
+                    y="class",
+                    orientation="h",
+                    text="count",
+                    color="class",
+                    color_discrete_map={
+                        "good": "#2e7d32",
+                        "not_good": "#d32f2f",
+                        "unknown": "#f57c00",
+                    },
+                )
+
                 fig.update_layout(
                     height=210,
                     margin=dict(l=0, r=0, t=0, b=0),
-                    xaxis_title="Confidence",
-                    yaxis_title="Count",
+                    yaxis=dict(autorange="reversed"),
+                    xaxis_title=None,
+                    yaxis_title=None,
+                    showlegend=False,
                 )
+
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
+        c3, c4 = st.columns(2, gap="small")
 
-with side_col:
-    with st.container(border=True):
-        st.markdown("<div class='section-title'>사람 검수 대기 셀</div>", unsafe_allow_html=True)
+        with c3:
+            with st.container(border=True):
+                st.markdown("<div class='section-title'>불량 / 검수 발생 추세</div>", unsafe_allow_html=True)
 
-        manual_df = pd.DataFrame(list(st.session_state.manual_queue))
+                if records_df.empty:
+                    st.info("추세 데이터 없음")
+                else:
+                    trend_df = records_df.copy()
+                    trend_df["seq"] = range(1, len(trend_df) + 1)
+                    trend_df["abnormal"] = trend_df["result"].isin(["DEFECT", "REVIEW"]).astype(int)
+                    trend_df["rolling_abnormal_rate"] = trend_df["abnormal"].rolling(20, min_periods=1).mean() * 100
 
-        if manual_df.empty:
-            st.info("현재 수동 검수 대기 항목 없음")
-        else:
-            view = manual_df[["time", "cell_id", "pred_label", "confidence", "reason"]].head(8).copy()
-            view["confidence"] = view["confidence"].map(lambda x: f"{x:.2f}")
-            view = view.rename(columns={
-                "time": "시간",
-                "cell_id": "셀 ID",
-                "pred_label": "예측",
-                "confidence": "신뢰도",
-                "reason": "사유",
-            })
+                    fig = px.line(trend_df, x="seq", y="rolling_abnormal_rate")
+                    fig.add_hline(y=TARGET_DEFECT_RATE, line_dash="dash", annotation_text="Target")
+                    fig.update_layout(
+                        height=210,
+                        margin=dict(l=0, r=0, t=0, b=0),
+                        xaxis_title="검사 순번",
+                        yaxis_title="최근 이상률(%)",
+                    )
+                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-            selected_idx = st.selectbox(
-                "검수 대상 선택",
-                options=list(range(len(view))),
-                format_func=lambda i: f"{view.iloc[i]['시간']} | {view.iloc[i]['셀 ID']} | {view.iloc[i]['예측']}",
-                label_visibility="collapsed",
-            )
+        with c4:
+            with st.container(border=True):
+                st.markdown("<div class='section-title'>Confidence 분포</div>", unsafe_allow_html=True)
 
-            selected_record = list(st.session_state.manual_queue)[selected_idx]
-            st.dataframe(view, hide_index=True, use_container_width=True, height=MANUAL_TABLE_HEIGHT)
+                if records_df.empty:
+                    st.info("분포 데이터 없음")
+                else:
+                    fig = px.histogram(
+                        records_df,
+                        x="confidence",
+                        nbins=12,
+                        color="result",
+                        color_discrete_map={
+                            "NORMAL": "#2e7d32",
+                            "DEFECT": "#d32f2f",
+                            "REVIEW": "#f57c00",
+                        },
+                    )
 
-            b1, b2 = st.columns(2)
-
-            with b1:
-                if st.button("정상 처리", use_container_width=True):
-                    selected_record["manual_label"] = "good"
-                    selected_record["manual_time"] = time.strftime("%H:%M:%S")
-                    st.session_state.manual_actions.append(selected_record)
-                    st.success(f"{selected_record['cell_id']} 정상 처리 완료")
-
-            with b2:
-                if st.button("불량 확정", use_container_width=True):
-                    selected_record["manual_label"] = "not_good"
-                    selected_record["manual_time"] = time.strftime("%H:%M:%S")
-                    st.session_state.manual_actions.append(selected_record)
-                    st.error(f"{selected_record['cell_id']} 불량 확정 완료")
+                    fig.add_vline(x=REVIEW_LOW, line_dash="dash")
+                    fig.add_vline(x=AUTO_THRESHOLD, line_dash="dash")
+                    fig.update_layout(
+                        height=210,
+                        margin=dict(l=0, r=0, t=0, b=0),
+                        xaxis_title="Confidence",
+                        yaxis_title="Count",
+                    )
+                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
-    with st.container(border=True):
-        st.markdown("<div class='section-title'>전압 / 온도 / 내부 이상치</div>", unsafe_allow_html=True)
+    with side_col:
+        with st.container(border=True):
+            st.markdown("<div class='section-title'>사람 검수 대기 셀</div>", unsafe_allow_html=True)
 
-        anomaly_score = last.get("anomaly_score", 0)
+            manual_df = pd.DataFrame(list(st.session_state.manual_queue))
 
-        if anomaly_score >= 0.70:
-            anomaly_class = "status-danger"
-            anomaly_text = "내부 데이터 이상 가능성 높음"
-        elif anomaly_score >= 0.45:
-            anomaly_class = "status-warn"
-            anomaly_text = "내부 데이터 관찰 필요"
-        else:
-            anomaly_class = "status-ok"
-            anomaly_text = "내부 데이터 정상"
+            if manual_df.empty:
+                st.info("현재 수동 검수 대기 항목 없음")
+            else:
+                view = manual_df[["time", "cell_id", "pred_label", "confidence", "reason"]].head(8).copy()
+                view["confidence"] = view["confidence"].map(lambda x: f"{x:.2f}")
+                view = view.rename(columns={
+                    "time": "시간",
+                    "cell_id": "셀 ID",
+                    "pred_label": "예측",
+                    "confidence": "신뢰도",
+                    "reason": "사유",
+                })
 
-        st.markdown(f"<div class='status-box {anomaly_class}'>{anomaly_text}</div>", unsafe_allow_html=True)
+                selected_idx = st.selectbox(
+                    "검수 대상 선택",
+                    options=list(range(len(view))),
+                    format_func=lambda i: f"{view.iloc[i]['시간']} | {view.iloc[i]['셀 ID']} | {view.iloc[i]['예측']}",
+                    label_visibility="collapsed",
+                )
 
-        s1, s2, s3 = st.columns(3)
+                selected_record = list(st.session_state.manual_queue)[selected_idx]
+                st.dataframe(view, hide_index=True, use_container_width=True, height=MANUAL_TABLE_HEIGHT)
 
-        with s1:
+                b1, b2 = st.columns(2)
+
+                with b1:
+                    if st.button("정상 처리", use_container_width=True):
+                        selected_record["manual_label"] = "good"
+                        selected_record["manual_time"] = time.strftime("%H:%M:%S")
+                        st.session_state.manual_actions.append(selected_record)
+                        st.success(f"{selected_record['cell_id']} 정상 처리 완료")
+
+                with b2:
+                    if st.button("불량 확정", use_container_width=True):
+                        selected_record["manual_label"] = "not_good"
+                        selected_record["manual_time"] = time.strftime("%H:%M:%S")
+                        st.session_state.manual_actions.append(selected_record)
+                        st.error(f"{selected_record['cell_id']} 불량 확정 완료")
+
+
+        with st.container(border=True):
+            st.markdown("<div class='section-title'>전압 / 온도 / 내부 이상치</div>", unsafe_allow_html=True)
+
+            anomaly_score = last.get("anomaly_score", 0)
+
+            if anomaly_score >= 0.70:
+                anomaly_class = "status-danger"
+                anomaly_text = "내부 데이터 이상 가능성 높음"
+            elif anomaly_score >= 0.45:
+                anomaly_class = "status-warn"
+                anomaly_text = "내부 데이터 관찰 필요"
+            else:
+                anomaly_class = "status-ok"
+                anomaly_text = "내부 데이터 정상"
+
+            st.markdown(f"<div class='status-box {anomaly_class}'>{anomaly_text}</div>", unsafe_allow_html=True)
+
+            s1, s2, s3 = st.columns(3)
+
+            with s1:
+                st.markdown(f"""
+                <div class="sensor-card">
+                    <div class="sensor-title">전압</div>
+                    <div class="sensor-value">{last.get('voltage', 0):.3f}V</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with s2:
+                st.markdown(f"""
+                <div class="sensor-card">
+                    <div class="sensor-title">온도</div>
+                    <div class="sensor-value">{last.get('temperature', 0):.1f}℃</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with s3:
+                st.markdown(f"""
+                <div class="sensor-card">
+                    <div class="sensor-title">Anomaly</div>
+                    <div class="sensor-value">{last.get('anomaly_score', 0):.2f}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            sensor_df = pd.DataFrame(list(st.session_state.sensor_history))
+
+            if not sensor_df.empty:
+                sensor_df["seq"] = range(1, len(sensor_df) + 1)
+
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=sensor_df["seq"], y=sensor_df["voltage"], mode="lines", name="Voltage"))
+                fig.add_trace(go.Scatter(x=sensor_df["seq"], y=sensor_df["temperature"] / 10, mode="lines", name="Temp/10"))
+
+                fig.update_layout(
+                    height=SENSOR_CHART_HEIGHT,
+                    margin=dict(l=0, r=0, t=0, b=0),
+                    xaxis_title=None,
+                    yaxis_title=None,
+                    legend=dict(orientation="h", y=-0.25),
+                )
+
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        with st.container(border=True):
+            st.markdown("<div class='section-title'>알람 / 이벤트 로그</div>", unsafe_allow_html=True)
+            render_worker_logs()
+
+        with st.container(border=True):
+            st.markdown("<div class='section-title'>시스템 상태 / 병목 모니터링</div>", unsafe_allow_html=True)
+
+            st.markdown(f"<div class='status-box {fps_status_class}'>{fps_message}</div>", unsafe_allow_html=True)
+
             st.markdown(f"""
-            <div class="sensor-card">
-                <div class="sensor-title">전압</div>
-                <div class="sensor-value">{last.get('voltage', 0):.3f}V</div>
-            </div>
+            <div class='info-line'><b>평균 추론시간</b> : {avg_ms:.1f} ms</div>
+            <div class='info-line'><b>처리 FPS</b> : {fps:.2f}</div>
+            <div class='info-line'><b>목표 FPS</b> : {TARGET_FPS:.2f}</div>
+            <div class='info-line'><b>모델 파일</b> : {model_name}</div>
+            <div class='info-line'><b>클래스</b> : good / not_good</div>
             """, unsafe_allow_html=True)
 
-        with s2:
-            st.markdown(f"""
-            <div class="sensor-card">
-                <div class="sensor-title">온도</div>
-                <div class="sensor-value">{last.get('temperature', 0):.1f}℃</div>
-            </div>
-            """, unsafe_allow_html=True)
 
-        with s3:
-            st.markdown(f"""
-            <div class="sensor-card">
-                <div class="sensor-title">Anomaly</div>
-                <div class="sensor-value">{last.get('anomaly_score', 0):.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        sensor_df = pd.DataFrame(list(st.session_state.sensor_history))
-
-        if not sensor_df.empty:
-            sensor_df["seq"] = range(1, len(sensor_df) + 1)
-
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=sensor_df["seq"], y=sensor_df["voltage"], mode="lines", name="Voltage"))
-            fig.add_trace(go.Scatter(x=sensor_df["seq"], y=sensor_df["temperature"] / 10, mode="lines", name="Temp/10"))
-
-            fig.update_layout(
-                height=SENSOR_CHART_HEIGHT,
-                margin=dict(l=0, r=0, t=0, b=0),
-                xaxis_title=None,
-                yaxis_title=None,
-                legend=dict(orientation="h", y=-0.25),
-            )
-
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
-    with st.container(border=True):
-        st.markdown("<div class='section-title'>알람 / 이벤트 로그</div>", unsafe_allow_html=True)
-        render_worker_logs()
-
-    with st.container(border=True):
-        st.markdown("<div class='section-title'>시스템 상태 / 병목 모니터링</div>", unsafe_allow_html=True)
-
-        st.markdown(f"<div class='status-box {fps_status_class}'>{fps_message}</div>", unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div class='info-line'><b>평균 추론시간</b> : {avg_ms:.1f} ms</div>
-        <div class='info-line'><b>처리 FPS</b> : {fps:.2f}</div>
-        <div class='info-line'><b>목표 FPS</b> : {TARGET_FPS:.2f}</div>
-        <div class='info-line'><b>모델 파일</b> : {model_name}</div>
-        <div class='info-line'><b>클래스</b> : good / not_good</div>
-        """, unsafe_allow_html=True)
-
-
+    time.sleep(AUTO_INTERVAL_SEC)
+    st.rerun()
 
 with tab2:
     st.markdown("""
 <style>
-    :root { 
-        --hyundai-blue: #012d74; 
-        --hyundai-light-blue: #0056b3; 
-        --danger-red: #d9534f; 
-        --safe-green: #28a745; 
-        --bg-color: #eef2f5; 
-        --card-bg: #ffffff; 
-    }
-    .main-header2 { 
-        background: linear-gradient(90deg, var(--hyundai-blue) 0%, var(--hyundai-light-blue) 100%); 
+    .t2-main-header { 
+        background: linear-gradient(90deg, #012d74 0%, #0056b3 100%); 
         padding: 20px 30px; border-radius: 10px; color: white; margin-bottom: 25px; 
         box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; align-items: center; 
     }
-    .main-header2 h1 { color: white !important; margin: 0; font-size: 32px; }
-    .main-header2 span { color: #e0e0e0; margin-left: 20px; font-size: 16px; margin-top: 10px; }
-    .kpi-container2 { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
-    .kpi-box2 { 
-        flex: 1; background-color: var(--card-bg); padding: 25px 20px; border-radius: 10px; 
+    .t2-main-header h1 { color: white !important; margin: 0; font-size: 32px; letter-spacing: 1px; }
+    .t2-main-header span { color: #e0e0e0; margin-left: 20px; font-size: 16px; margin-top: 10px; }
+    .t2-kpi-container { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
+    .t2-kpi-box { 
+        flex: 1; background-color: #ffffff; padding: 25px 20px; border-radius: 10px; 
         box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; 
-        border-top: 5px solid var(--hyundai-blue); border: 1px solid #eaeaea; 
+        border-top: 5px solid #012d74; border: 1px solid #eaeaea; 
     }
-    .kpi-box2.alert2 { border-top: 5px solid var(--danger-red); }
-    .kpi-title2 { font-size: 15px; color: #555; margin-bottom: 10px; font-weight: 600; }
-    .kpi-value2 { font-size: 26px; font-weight: 800; color: var(--hyundai-blue); }
-    .kpi-value2.alert-text2 { color: var(--danger-red); }
-    .section-card2 { 
-        background-color: var(--card-bg); padding: 20px; border-radius: 10px; 
+    .t2-kpi-box.t2-alert { border-top: 5px solid #d9534f; }
+    .t2-kpi-title { font-size: 15px; color: #555; margin-bottom: 10px; font-weight: 600; }
+    .t2-kpi-value { font-size: 26px; font-weight: 800; color: #012d74; }
+    .t2-kpi-value.t2-alert-text { color: #d9534f; }
+    .t2-section-card { 
+        background-color: #ffffff; padding: 20px; border-radius: 10px; 
         box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 25px; border: 1px solid #eaeaea; 
     }
-    .section-title2 { 
-        font-size: 18px; color: var(--hyundai-blue); font-weight: bold; margin-bottom: 15px; 
+    .t2-section-title { 
+        font-size: 18px; color: #012d74; font-weight: bold; margin-bottom: 15px; 
         padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; display: flex; align-items: center; gap: 10px; 
     }
-    .log-box2 { 
+    .t2-battery-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+    .t2-pack-link { width: calc(20% - 16px); text-decoration: none; color: inherit; display: block; }
+    .t2-pack-card { 
+        width: 100%; padding: 20px 5px; border-radius: 8px; text-align: center; 
+        border: 2px solid #ddd; transition: transform 0.2s; background: #fafafa;
+        display: flex; flex-direction: column; justify-content: center;
+    }
+    .t2-pack-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.15); cursor: pointer; }
+    .t2-pack-ok { border-color: #d1d5db; }
+    .t2-pack-ng { border-color: #d9534f; background: #fff5f5; animation: borderPulse 1.5s infinite; }
+    .t2-pack-chassis { background-color: #2c3e50; border-radius: 6px; padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 15px auto; width: 90%; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
+    .t2-mod-cell { height: 20px; border-radius: 2px; background-color: #28a745; border: 1px solid #1e5631; }
+    .t2-mod-cell.t2-ng { background-color: #d9534f; border: 1px solid #8b0000; animation: blink 1s infinite; }
+    .t2-pack-id { font-size: 15px; font-weight: bold; color: #333; }
+    .t2-pack-status { font-size: 14px; font-weight: bold; margin-top: 10px; }
+    .t2-pack-ok .t2-pack-status { color: #28a745; }
+    .t2-pack-ng .t2-pack-status { color: #d9534f; }
+    .t2-log-box { 
         background-color: #1e1e1e !important; color: #00ff00 !important; 
-        font-family: 'Courier New', monospace; padding: 15px; border-radius: 6px; 
-        overflow-y: auto; border-left: 4px solid var(--hyundai-blue); font-size: 14px; line-height: 1.6; 
+        font-family: "Courier New", monospace; padding: 15px; border-radius: 6px; 
+        overflow-y: auto; border-left: 4px solid #012d74; font-size: 14px; line-height: 1.6; 
     }
-    .log-error2 { color: #ff4b4b; font-weight: bold; }
-    .battery-grid2 { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-    .pack-card2 { 
-        width: 140px; padding: 20px 5px; border-radius: 8px; text-align: center; 
-        border: 2px solid #ddd; background: #fafafa; 
-    }
-    .pack-ok2 { border-color: #d1d5db; }
-    .pack-ng2 { border-color: var(--danger-red); background: #fff5f5; animation: borderPulse 1.5s infinite; }
-    .pack-chassis2 { background-color: #2c3e50; border-radius: 6px; padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 15px auto; width: 90%; }
-    .mod-cell2 { height: 20px; border-radius: 2px; background-color: var(--safe-green); }
-    .mod-cell2.ng2 { background-color: var(--danger-red); animation: blink 1s infinite; }
-    .pack-id2 { font-size: 15px; font-weight: bold; color: #333; }
-    .pack-status2 { font-size: 14px; font-weight: bold; margin-top: 10px; }
-    .pack-ok2 .pack-status2 { color: var(--safe-green); }
-    .pack-ng2 .pack-status2 { color: var(--danger-red); }
+    .t2-log-error { color: #ff4b4b; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
     st.markdown("""
-<div class="main-header2">
+<div class="t2-main-header">
     <h1>서비스 타이틀</h1>
     <span>서브 타이틀 및 설명 텍스트 영역</span>
 </div>
 """, unsafe_allow_html=True)
 
     st.markdown("""
-<div class="kpi-container2">
-    <div class="kpi-box2">
-        <div class="kpi-title2">일반 KPI 지표 1</div>
-        <div class="kpi-value2">값 1 <span style="font-size:16px; color:#888;">/ 단위</span></div>
+<div class="t2-kpi-container">
+    <div class="t2-kpi-box">
+        <div class="t2-kpi-title">일반 KPI 지표 1</div>
+        <div class="t2-kpi-value">값 1 <span style="font-size:16px; color:#888;">/ 단위</span></div>
     </div>
-    <div class="kpi-box2 alert2">
-        <div class="kpi-title2" style="color:var(--hyundai-blue);">경고 레이아웃 KPI 2</div>
-        <div class="kpi-value2 alert-text2" style="font-size:22px;">경고 값</div>
+    <div class="t2-kpi-box t2-alert">
+        <div class="t2-kpi-title" style="color:#012d74;">경고 레이아웃 KPI 2</div>
+        <div class="t2-kpi-value t2-alert-text" style="font-size:22px;">경고 값</div>
     </div>
-    <div class="kpi-box2">
-        <div class="kpi-title2">일반 KPI 지표 3</div>
-        <div class="kpi-value2" style="font-size:20px;">[텍스트] 텍스트 값</div>
+    <div class="t2-kpi-box">
+        <div class="t2-kpi-title">일반 KPI 지표 3</div>
+        <div class="t2-kpi-value" style="font-size:20px;">[텍스트] 텍스트 값</div>
     </div>
-    <div class="kpi-box2 alert2">
-        <div class="kpi-title2">시스템 상태 표시</div>
-        <div class="kpi-value2 alert-text2">상태 문구</div>
+    <div class="t2-kpi-box t2-alert">
+        <div class="t2-kpi-title">시스템 상태 표시</div>
+        <div class="t2-kpi-value t2-alert-text">상태 문구</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-    col_img2, col_log2 = st.columns([6, 4])
+    t2_col_img, t2_col_log = st.columns([6, 4])
 
-    with col_img2:
+    with t2_col_img:
         st.markdown("""
-<div class="section-card2">
-    <div class="section-title2">
+<div class="t2-section-card">
+    <div class="t2-section-title">
         <span>메인 뷰어 영역 타이틀</span>
         <span style="font-size:14px; font-weight:normal; color:#888; margin-left:auto;">우측 설명 텍스트</span>
     </div>
-    <div class="battery-grid2">
-        <div class="pack-card2 pack-ok2">
-            <div class="pack-id2">정상 팩</div>
-            <div class="pack-chassis2"><div class="mod-cell2"></div><div class="mod-cell2"></div><div class="mod-cell2"></div><div class="mod-cell2"></div></div>
-            <div class="pack-status2">양호</div>
+    <div class="t2-battery-grid">
+        <div class="t2-pack-link">
+            <div class="t2-pack-card t2-pack-ok">
+                <div class="t2-pack-id">정상 팩 <span style="font-size:11px;color:gray;">(모드)</span></div>
+                <div class="t2-pack-chassis">
+                    <div class="t2-mod-cell"></div><div class="t2-mod-cell"></div>
+                    <div class="t2-mod-cell"></div><div class="t2-mod-cell"></div>
+                </div>
+                <div class="t2-pack-status">양호</div>
+            </div>
         </div>
-        <div class="pack-card2 pack-ng2">
-            <div class="pack-id2">불량 팩</div>
-            <div class="pack-chassis2"><div class="mod-cell2 ng2"></div><div class="mod-cell2"></div><div class="mod-cell2"></div><div class="mod-cell2"></div></div>
-            <div class="pack-status2">경고</div>
+        <div class="t2-pack-link">
+            <div class="t2-pack-card t2-pack-ng">
+                <div class="t2-pack-id">불량 팩 <span style="font-size:11px;color:gray;">(모드)</span></div>
+                <div class="t2-pack-chassis">
+                    <div class="t2-mod-cell t2-ng"></div><div class="t2-mod-cell"></div>
+                    <div class="t2-mod-cell"></div><div class="t2-mod-cell"></div>
+                </div>
+                <div class="t2-pack-status">경고 클릭</div>
+            </div>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-    with col_log2:
+    with t2_col_log:
         st.markdown("""
-<div class="section-card2" style="margin-bottom: 15px;">
-    <div class="section-title2"><span>로그 터미널 영역 1</span></div>
-    <div class="log-box2" style="border-left: 4px solid #ff9800; height: 220px;">
+<div class="t2-section-card" style="margin-bottom: 15px;">
+    <div class="t2-section-title"><span>로그 터미널 영역 1</span></div>
+    <div class="t2-log-box" style="border-left: 4px solid #ff9800; height: 220px;">
         <span style='color:#ff4b4b;'>[경고 태그]</span> 경고 메시지 예시입니다.<br>
         <span style='color:#ffc107;'>[주의 태그]</span> 주의 메시지 예시입니다.
     </div>
 </div>
-<div class="section-card2">
-    <div class="section-title2"><span>로그 터미널 영역 2</span></div>
-    <div class="log-box2" style="height: 180px;">
+<div class="t2-section-card">
+    <div class="t2-section-title"><span>로그 터미널 영역 2</span></div>
+    <div class="t2-log-box" style="height: 180px;">
         &gt; [SYSTEM] 시스템 정상 구동 메시지...<br>
-        <span class="log-error2">&gt; [FATAL] 심각한 에러 발생 스타일 예시</span>
+        <span class="t2-log-error">&gt; [FATAL] 심각한 에러 발생 스타일 예시</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-
-time.sleep(AUTO_INTERVAL_SEC)
-st.rerun()
+    t2_c1, t2_c2 = st.columns(2)
+    with t2_c1:
+        st.markdown("""
+<div style="background-color:white;padding:15px 20px 5px 20px;border-radius:10px 10px 0 0;border:1px solid #eaeaea;border-bottom:none;">
+    <div class="t2-section-title" style="margin-bottom:0;border-bottom:none;"><span>데이터 테이블 1 타이틀</span></div>
+</div>
+""", unsafe_allow_html=True)
+    with t2_c2:
+        st.markdown("""
+<div style="background-color:white;padding:15px 20px 5px 20px;border-radius:10px 10px 0 0;border:1px solid #eaeaea;border-bottom:none;">
+    <div class="t2-section-title" style="margin-bottom:0;border-bottom:none;"><span>데이터 테이블 2 타이틀</span></div>
+</div>
+""", unsafe_allow_html=True)
