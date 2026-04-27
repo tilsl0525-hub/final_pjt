@@ -10,3 +10,4 @@ tf-keras
 joblib
 scikit-learn
 h5py
+headless-opencv
